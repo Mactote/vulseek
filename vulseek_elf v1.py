@@ -560,7 +560,7 @@ def printScan(bin, blockList, showdisass, showrep):
                                                     elif numSpecifiers < numParams:
                                                         repbuffer +=  " Warning: Format string contains less format specifiers than params have been passed to printf. There is a FS vulnerability." + os.linesep*2
             
-                                        elif re.search("move(ax|bx|cx|dx|si|di),|leae(ax|bx|cx|dx|si|di),", block.lines[i-2].code.replace(" ", "")):        # and it doesn«t seem to be a constant format string
+                                        elif re.search("move(ax|bx|cx|dx|si|di),|leae(ax|bx|cx|dx|si|di),", block.lines[i-2].code.replace(" ", "")):        # and it doesnÂ´t seem to be a constant format string
                                             hits += 1
                                             buf2 = getVulBlock(block, i, riskyFunc)
                                             repbuffer += os.linesep +  " %d) Check the usage of %s in function %s:" % (hits, riskyFunc, line.function) + os.linesep*2 + buf2 + os.linesep*2
@@ -569,7 +569,7 @@ def printScan(bin, blockList, showdisass, showrep):
                                             else:
                                                 repbuffer += " Warning: First parameter of the printf call does not seem to be a constant format string. It could be a potential FS vulnerability." + os.linesep*2
                                     
-                                    elif block.lines[i-1].comment and re.search("movDWORDPTR\\[esp\\],|push", block.lines[i-1].code.replace(" ", "")) and block.lines[i-1].comment.find("const_") == -1:    # In case the first parameter is not passed through a register and it doesn«t seem to be a constant format string
+                                    elif block.lines[i-1].comment and re.search("movDWORDPTR\\[esp\\],|push", block.lines[i-1].code.replace(" ", "")) and block.lines[i-1].comment.find("const_") == -1:    # In case the first parameter is not passed through a register and it doesnÂ´t seem to be a constant format string
                                         hits += 1
                                         buf2 = getVulBlock(block, i, riskyFunc)
                                         repbuffer += os.linesep +  " %d) Check the usage of %s in function %s:" % (hits, riskyFunc, line.function) + os.linesep*2 + buf2 + os.linesep*2
