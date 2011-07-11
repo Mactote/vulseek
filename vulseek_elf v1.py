@@ -38,7 +38,7 @@ IGNORE_FUNCTIONS = ["call_gmon_start", "_start", "__i686.get_pc_thunk.bx", "__do
                     "__get_cpu_indicator", "__intel_set_fpx_mask", "__intel_new_proc_init", "__intel_proc_init", "__intel_sse2_", "__intel_sse4_",
                     "irc__get_msg", "irc__print", "extract64_lo", "extract64_hi"]
 
-WARNING_FUNCTIONS = ["printf@", "strcpy"]
+WARNING_FUNCTIONS = ["printf", "strcpy"]
 
 
 JUMP_MNEMONICS = ["call", "je", "jle", "jmp", "jnz", "jn", "jz", "jo", "jno", "js", "jns", "je", "jz", "jne", "jnz", 
@@ -414,7 +414,7 @@ def searchVars(line, rodata, data):
 def getVulBlock(asmBlock, x, riskyFunction):    # We prepared the buffer to print of the current vulnerable's block
     
     ##########################
-    if riskyFunction == "printf@":
+    if riskyFunction == "printf":
         if asmBlock.lines[x].comment:
             buffer = " %s:\t%s\t\t;%s" % (asmBlock.lines[x].address, asmBlock.lines[x].code.ljust(30), repr(asmBlock.lines[x].comment)) 
         else:
@@ -536,7 +536,7 @@ def printScan(bin, blockList, showdisass, showrep):
                         if line.code.find(riskyFunc) > -1:
                             
                             ##########################
-                            if riskyFunc == "printf@":
+                            if riskyFunc == "printf":
                                 if i > 1:
                                     if re.search("movDWORDPTR\\[esp\\],e(ax|bx|cx|dx|si|di)|pushe(ax|bx|cx|dx|si|di)", block.lines[i-1].code.replace(" ", "")):     # If there is a parameter passed to the stack through a register
                                         if re.search("move(ax|bx|cx|dx|si|di),const_", block.lines[i-2].code.replace(" ", "")):     # and it seems to be a constant format string
