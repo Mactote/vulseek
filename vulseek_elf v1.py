@@ -536,39 +536,57 @@ def printScan(bin, blockList, showdisass, showrep):
                         if line.code.find(riskyFunc) > -1:
                             
                             ##########################
-                            if riskyFunc == "printf":
+                            if riskyFunc == "printf" and re.search("(f|s|sn|v|vf|vs|vsn)printf", line.code) == None:
                                 if i > 1:
                                     if re.search("movDWORDPTR\\[esp\\],e(ax|bx|cx|dx|si|di)|pushe(ax|bx|cx|dx|si|di)", block.lines[i-1].code.replace(" ", "")):     # If there is a parameter passed to the stack through a register
-                                        if re.search("move(ax|bx|cx|dx|si|di),const_", block.lines[i-2].code.replace(" ", "")):     # and it seems to be a constant format string
-                                            colon = block.lines[i-2].comment.find(":")
-                                            if colon > -1:
-                                                specifiers = re.findall("%[csduoxefgXEGpnDUOF]", block.lines[i-2].comment[colon:])  # We look for format specifiers and count them to compare with the rest of the params passed
-                                                numSpecifiers = len(specifiers)
-                                                z = 3
-                                                numParams = 0
-                                                while re.search("movDWORDPTR\\[esp|push|leae(ax|bx|cx|dx|si|di),\\[ebp|move(ax|bx|cx|dx|si|di),", block.lines[i-z].code.replace(" ", "")) and z <= i: # We just check for prior instructions which manipulate the params passed to printf
-                                                    if re.search("movDWORDPTR\\[esp|push", block.lines[i-z].code.replace(" ", "")):
-                                                        numParams += 1
-                                                    z += 1
-                                                if numSpecifiers != numParams:
-                                                    hits += 1
-                                                    buf2 = getVulBlock(block, i, riskyFunc)
-                                                    repbuffer += os.linesep +  " %d) Check the usage of %s in function %s:" % (hits, riskyFunc, line.function) + os.linesep*2 + buf2 + os.linesep*2
-                                                        
-                                                    if numSpecifiers > numParams:
-                                                        repbuffer +=  " Warning: Format string contains more format specifiers than params have been passed to printf. There is a FS vulnerability." + os.linesep*2
-                                                    elif numSpecifiers < numParams:
-                                                        repbuffer +=  " Warning: Format string contains less format specifiers than params have been passed to printf. There is a FS vulnerability." + os.linesep*2
-            
-                                        elif re.search("move(ax|bx|cx|dx|si|di),|leae(ax|bx|cx|dx|si|di),", block.lines[i-2].code.replace(" ", "")):        # and it doesn't seem to be a constant format string
-                                            hits += 1
-                                            buf2 = getVulBlock(block, i, riskyFunc)
-                                            repbuffer += os.linesep +  " %d) Check the usage of %s in function %s:" % (hits, riskyFunc, line.function) + os.linesep*2 + buf2 + os.linesep*2
-                                            if re.search("\\[ebp", block.lines[i-2].code.replace(" ", "")):
-                                                repbuffer += " Warning: First parameter of the printf call is not a constant format string. There is a potential FS vulnerability." + os.linesep*2
-                                            else:
-                                                repbuffer += " Warning: First parameter of the printf call does not seem to be a constant format string. It could be a potential FS vulnerability." + os.linesep*2
-                                    
+                                        commaRef = None
+                                        regUsed = None
+                                        commaRef = block.lines[i-1].code.find(",")       # We want to save the register used as first param
+                                        if commaRef > -1:
+                                            regUsed = block.lines[i-1].code[commaRef+1:]     # In case it is a mov instruction
+                                        else:
+                                            regUsed = block.lines[i-1].code.replace(" ", "")[4:] # In case it is a push instruction
+                                        
+                                        print "%s" % block.lines[i-1].code
+                                        z = 1
+                                        regChecked = False
+                                        
+                                        while regChecked == False and z <= i:
+                                            
+                                            z += 1
+                                            
+                                            if re.search("move(ax|bx|cx|dx|si|di),const_", block.lines[i-z].code.replace(" ", "")) != None and block.lines[i-z].code.find(regUsed) != -1:     # and it seems to be a constant format string
+                                                regChecked = True
+                                                colon = block.lines[i-z].comment.find(":")
+                                                if colon > -1:
+                                                    specifiers = re.findall("%[csduoxefgXEGpnDUOF]", block.lines[i-z].comment[colon:])  # We look for format specifiers and count them to compare with the rest of the params passed
+                                                    numSpecifiers = len(specifiers)
+                                                    z = 2
+                                                    numParams = 0
+                                                    while re.search("movDWORDPTR\\[esp|push|leae(ax|bx|cx|dx|si|di),\\[ebp|move(ax|bx|cx|dx|si|di),", block.lines[i-z].code.replace(" ", "")) and z <= i: # We just check for prior instructions which manipulate the params passed to printf
+                                                        if re.search("movDWORDPTR\\[esp|push", block.lines[i-z].code.replace(" ", "")):
+                                                            numParams += 1
+                                                        z += 1
+                                                    if numSpecifiers != numParams:
+                                                        hits += 1
+                                                        buf2 = getVulBlock(block, i, riskyFunc)
+                                                        repbuffer += os.linesep +  " %d) Check the usage of %s in function %s:" % (hits, riskyFunc, line.function) + os.linesep*2 + buf2 + os.linesep*2
+                                                            
+                                                        if numSpecifiers > numParams:
+                                                            repbuffer +=  " Warning: Format string contains more format specifiers than params have been passed to printf. There is a FS vulnerability." + os.linesep*2
+                                                        elif numSpecifiers < numParams:
+                                                            repbuffer +=  " Warning: Format string contains less format specifiers than params have been passed to printf. There is a FS vulnerability." + os.linesep*2
+                
+                                            elif re.search("move(ax|bx|cx|dx|si|di),|leae(ax|bx|cx|dx|si|di),", block.lines[i-z].code.replace(" ", "")) and block.lines[i-z].code.find(regUsed):    # and it doesn't seem to be a constant format string
+                                                regChecked = True
+                                                hits += 1
+                                                buf2 = getVulBlock(block, i, riskyFunc)
+                                                repbuffer += os.linesep +  " %d) Check the usage of %s in function %s:" % (hits, riskyFunc, line.function) + os.linesep*2 + buf2 + os.linesep*2
+                                                if re.search("\\[ebp", block.lines[i-2].code.replace(" ", "")):
+                                                    repbuffer += " Warning: First parameter of the printf call is not a constant format string. There is a potential FS vulnerability." + os.linesep*2
+                                                else:
+                                                    repbuffer += " Warning: First parameter of the printf call does not seem to be a constant format string. It could be a potential FS vulnerability." + os.linesep*2
+                                        
                                     elif block.lines[i-1].comment and re.search("movDWORDPTR\\[esp\\],|push", block.lines[i-1].code.replace(" ", "")) and block.lines[i-1].comment.find("const_") == -1:    # In case the first parameter is not passed through a register and it doesn't seem to be a constant format string
                                         hits += 1
                                         buf2 = getVulBlock(block, i, riskyFunc)
