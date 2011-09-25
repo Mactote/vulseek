@@ -547,7 +547,7 @@ def printScan(bin, blockList, showdisass, showrep):
                                         else:
                                             regUsed = block.lines[i-1].code.replace(" ", "")[4:] # In case it is a push instruction
                                         
-                                        print "%s" % block.lines[i-1].code
+                                        #print "%s" % block.lines[i-1].code #Just a Check
                                         z = 1
                                         regChecked = False
                                         
